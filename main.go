@@ -29,6 +29,7 @@ func renderPage(w http.ResponseWriter, r *http.Request, page Page) {
 		_ = t.Execute(w, page)
 	} else {
 		w.WriteHeader(404)
+        fmt.Println(err.Error())
 		_, _ = fmt.Fprintf(w, "404 Not Found")
 	}
 }
@@ -100,7 +101,7 @@ func main() {
 	http.HandleFunc("/authenticate", client.authenticateHandle)
 	http.HandleFunc("/login", client.authorizeHandle)
 	http.HandleFunc("/createUser", client.createUserHandle)
-	err := http.ListenAndServe(":8081", nil)
+	err := http.ListenAndServe(":80", nil)
 	if err != nil {
 		log.Panic(err)
 	}
