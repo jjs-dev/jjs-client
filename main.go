@@ -6,41 +6,68 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 )
 
 type Page struct {
-	Again template.HTML
+	Message template.HTML
 }
 
-func write500Error(w http.ResponseWriter, err error) {
+func (apiClient *Api) write500Error(w http.ResponseWriter, err error) {
 	w.WriteHeader(500)
-	_, _ = fmt.Fprintf(w, "500 Internal Server Error (" + err.Error() + ")")
+	message := "500 Internal Server Error"
+	if apiClient.debug {
+		message += "( " + err.Error() + ")"
+	}
+	_, _ = fmt.Fprintf(w, message)
 }
 
 func loadTemplate(path string) (*template.Template, error) {
-	t, err := template.ParseFiles("./templates" + path[strings.Index(path, "/"):] + ".html")
+	t, err := template.ParseFiles("./templates/" + path)
 	return t, err
 }
 
-func renderPage(w http.ResponseWriter, r *http.Request, page Page) {
-	t, err := loadTemplate(r.URL.Path)
+func (apiClient *Api) renderPage(w http.ResponseWriter, templatePath string, page Page) {
+	t, err := loadTemplate(templatePath)
 	if err == nil {
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(200)
-		_ = t.Execute(w, page)
+		err = t.Execute(w, page)
+		if err != nil {
+			apiClient.write500Error(w, err)
+		}
 	} else {
-		w.WriteHeader(404)
-        fmt.Println(err.Error())
+		w.WriteHeader(404) // TODO: throw 500 error when file has been found, but there was an actual error
+		if apiClient.debug {
+			fmt.Println("Error during template " + templatePath + " load: " + err.Error())
+		}
 		_, _ = fmt.Fprintf(w, "404 Not Found")
 	}
 }
 
-func (apiClient Api) authorizeHandle(w http.ResponseWriter, r *http.Request) {
+func renderMessage(query *url.Values) Page {
+	message := query.Get("message")
+	if message == "" {
+		return Page{Message: ""}
+	} else {
+		color := query.Get("color")
+		if color == "" {
+			color = "primary"
+		}
+		return Page{Message: "<div class=\"alert alert-" + template.HTML(color) + "\" role=\"alert\">" +
+			template.HTML(message) +
+			"</div>"}
+	}
+}
+
+func (apiClient *Api) authorizeHandle(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		if err := r.ParseForm(); err != nil {
-			log.Println(err.Error())
+			if apiClient.debug {
+				log.Println("Error during parsing authorize POST form: " + err.Error())
+			}
 			w.WriteHeader(400)
 			_, _ = fmt.Fprintf(w, "400 Bad Request")
 		}
@@ -52,27 +79,20 @@ func (apiClient Api) authorizeHandle(w http.ResponseWriter, r *http.Request) {
 			http.SetCookie(w, &cookie)
 			http.Redirect(w, r, "/authenticate", 301)
 		} else {
-			http.Redirect(w, r, "/login?again=1", 301)
+			http.Redirect(w, r, "/login?message=Check credentials&color=danger", 301)
 		}
 	} else {
-		if r.URL.Query().Get("again") == "" {
-			renderPage(w, r, Page{Again: ""})
-		} else {
-			renderPage(w, r, Page{
-				Again: "<div class=\"alert alert-danger\" role=\"alert\">" +
-					"Check credentials" +
-					"</div>",
-			})
-		}
+		values := r.URL.Query()
+		apiClient.renderPage(w, "login.html", renderMessage(&values))
 	}
 }
 
-func (apiClient Api) authenticateHandle(w http.ResponseWriter, r *http.Request) {
+func (apiClient *Api) authenticateHandle(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("auth")
 	if err == nil {
 		res, err := apiClient.authenticate(cookie.Value)
 		if err != nil {
-			write500Error(w, err)
+			apiClient.write500Error(w, err)
 		}
 		w.WriteHeader(200)
 		if res {
@@ -81,26 +101,37 @@ func (apiClient Api) authenticateHandle(w http.ResponseWriter, r *http.Request) 
 			_, _ = w.Write([]byte("Not ok."))
 		}
 	} else {
-		write500Error(w, err)
+		apiClient.write500Error(w, err)
 	}
 }
 
-func (apiClient Api) createUserHandle(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	login := query.Get("login")
-	password := query.Get("password")
-	id, err := apiClient.createUser(login, password, []string{"Participants"})
-	if err == nil {
-		w.WriteHeader(200)
-		_, _ = w.Write([]byte(id))
+func (apiClient *Api) createUserHandle(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		if err := r.ParseForm(); err != nil {
+			log.Println("Error during parsing createUser POST form: " + err.Error())
+			w.WriteHeader(400)
+			_, _ = fmt.Fprintf(w, "400 Bad Request")
+		}
+		login := r.FormValue("login")
+		password := r.FormValue("password")
+		_, err := apiClient.createUser(login, password, []string{"Participants"})
+		if err == nil {
+			http.Redirect(w, r, "/createUser?message=Done!&color=success", 301)
+		} else {
+			http.Redirect(w, r, "/createUser?message=Such username already exists&color=danger", 301)
+		}
 	} else {
-		write500Error(w, err)
+		values := r.URL.Query()
+		apiClient.renderPage(w, "createUser.html", renderMessage(&values))
 	}
 }
 
-func staticContentHandle(w http.ResponseWriter, r *http.Request) {
+func (apiClient *Api) staticContentHandle(w http.ResponseWriter, r *http.Request) {
 	data, err := ioutil.ReadFile("./static" + r.URL.Path[strings.Index(r.URL.Path, "/"):])
 	if err != nil {
+		if apiClient.debug {
+			log.Println("Not found path: " +  r.URL.Path)
+		}
 		w.WriteHeader(404)
 		_, _ = fmt.Fprintf(w, "404 Not Found")
 	} else {
@@ -123,17 +154,17 @@ func main() {
 	if !found {
 		log.Fatal("Please set the JJS_API_URL environmental variable")
 	}
-	client := initialize(apiURL)
+	_, found = os.LookupEnv("DEBUG")
+	client := initialize(apiURL, found)
 	http.HandleFunc("/authenticate", client.authenticateHandle)
 	http.HandleFunc("/login", client.authorizeHandle)
 	http.HandleFunc("/createUser", client.createUserHandle)
-	http.HandleFunc("/", staticContentHandle)
-	var err error
-	if _, dev := os.LookupEnv("DEV"); dev != nil {
-		err = http.ListenAndServe(":8080", nil)
-	} else {
-		err = http.ListenAndServe(":8080", nil)
+	http.HandleFunc("/", client.staticContentHandle)
+	address := ":80"
+	if client.debug {
+		address = ":8080"
 	}
+	err := http.ListenAndServe(address, nil)
 	if err != nil {
 		log.Panic(err)
 	}
