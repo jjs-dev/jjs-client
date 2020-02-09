@@ -11,7 +11,7 @@ import (
 )
 
 type Page struct {
-	Again string
+	Again template.HTML
 }
 
 func write500Error(w http.ResponseWriter, err error) {
@@ -58,7 +58,11 @@ func (apiClient Api) authorizeHandle(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("again") == "" {
 			renderPage(w, r, Page{Again: ""})
 		} else {
-			renderPage(w, r, Page{Again: "Check credentials"})
+			renderPage(w, r, Page{
+				Again: "<div class=\"alert alert-danger\" role=\"alert\">" +
+					"Check credentials" +
+					"</div>",
+			})
 		}
 	}
 }
@@ -124,7 +128,7 @@ func main() {
 	http.HandleFunc("/login", client.authorizeHandle)
 	http.HandleFunc("/createUser", client.createUserHandle)
 	http.HandleFunc("/", staticContentHandle)
-	err := http.ListenAndServe(":8081", nil)
+	err := http.ListenAndServe(":80", nil)
 	if err != nil {
 		log.Panic(err)
 	}
