@@ -1,22 +1,22 @@
-<!--<!DOCTYPE html>-->
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" class="h-100">
 <head>
     <meta charset="UTF-8">
     <title>Create user</title>
     <link rel="stylesheet" type="text/css" href="/bootstrap.min.css">
 </head>
-<body>
-    <div class="container-fluid">
+<body class="h-100">
+    <div class="container-fluid h-100">
         <div class="d-flex h-100 justify-content-center align-items-center">
             <div class="col-lg-3 col-sm-12">
                 <div class="text-center">
                     <h3>Sign up in JJS</h3>
                 </div>
                 <form action="/createUser" method="post">
-                    <div class="form-group">
+                    <div class="form-group mb-2">
                         <input type="text" class="form-control" id="loginInput" placeholder="Enter login" name="login">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group mb-2">
                         <input type="password" class="form-control" id="passwordInput" placeholder="Enter password" name="password">
                     </div>
                     {{.Message}}
