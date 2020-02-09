@@ -128,7 +128,12 @@ func main() {
 	http.HandleFunc("/login", client.authorizeHandle)
 	http.HandleFunc("/createUser", client.createUserHandle)
 	http.HandleFunc("/", staticContentHandle)
-	err := http.ListenAndServe(":80", nil)
+	var err error
+	if _, dev := os.LookupEnv("DEV"); dev != nil {
+		err = http.ListenAndServe(":8080", nil)
+	} else {
+		err = http.ListenAndServe(":8080", nil)
+	}
 	if err != nil {
 		log.Panic(err)
 	}
