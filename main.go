@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -26,6 +27,8 @@ func loadTemplate(path string) (*template.Template, error) {
 func renderPage(w http.ResponseWriter, r *http.Request, page Page) {
 	t, err := loadTemplate(r.URL.Path)
 	if err == nil {
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(200)
 		_ = t.Execute(w, page)
 	} else {
 		w.WriteHeader(404)
@@ -91,6 +94,25 @@ func (apiClient Api) createUserHandle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func staticContentHandle(w http.ResponseWriter, r *http.Request) {
+	data, err := ioutil.ReadFile("./static" + r.URL.Path[strings.Index(r.URL.Path, "/"):])
+	if err != nil {
+		w.WriteHeader(404)
+		_, _ = fmt.Fprintf(w, "404 Not Found")
+	} else {
+		if strings.HasSuffix(r.URL.Path, "css") {
+			w.Header().Set("Content-Type", "text/css")
+		} else if strings.HasSuffix(r.URL.Path, "js") {
+			w.Header().Set("Content-Type", "application/javascript")
+		} else {
+			w.Header().Set("Content-Type", "text/plain")
+		}
+		w.Header().Set("Cache-Control", "max-age=3600")
+		w.WriteHeader(200)
+		_, _ = w.Write(data)
+	}
+}
+
 
 func main() {
 	apiURL, found := os.LookupEnv("JJS_API_URL")
@@ -101,7 +123,8 @@ func main() {
 	http.HandleFunc("/authenticate", client.authenticateHandle)
 	http.HandleFunc("/login", client.authorizeHandle)
 	http.HandleFunc("/createUser", client.createUserHandle)
-	err := http.ListenAndServe(":80", nil)
+	http.HandleFunc("/", staticContentHandle)
+	err := http.ListenAndServe(":8081", nil)
 	if err != nil {
 		log.Panic(err)
 	}
