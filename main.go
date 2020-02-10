@@ -34,6 +34,13 @@ func (apiClient *Api) renderPage(w http.ResponseWriter, templatePath string, pag
 	if err == nil {
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(200)
+		if pusher, ok := w.(http.Pusher); ok {
+			if err := pusher.Push("/bootstrap.min.css", nil); err != nil {
+				if apiClient.debug {
+					log.Println("Error during pushing Bootstrap css: " + err.Error())
+				}
+			}
+		}
 		err = t.Execute(w, page)
 		if err != nil {
 			apiClient.write500Error(w, err)
@@ -163,6 +170,14 @@ func main() {
 	address := ":80"
 	if client.debug {
 		address = ":8080"
+	}
+	certFile, foundCert := os.LookupEnv("CERT_FILE")
+	keyFile, foundKey := os.LookupEnv("KEY_FILE")
+	if foundCert && foundKey {
+		err := http.ListenAndServeTLS(":443", certFile, keyFile, nil)
+		if err != nil {
+			log.Panic(err)
+		}
 	}
 	err := http.ListenAndServe(address, nil)
 	if err != nil {
