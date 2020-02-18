@@ -14,3 +14,4 @@ WORKDIR /jjs-client/
 ENTRYPOINT ["./jjs-client"]
 
 EXPOSE 80
+EXPOSE 443

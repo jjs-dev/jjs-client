@@ -1,0 +1,41 @@
+body {
+    flex-direction: column;
+    display: flex;
+}
+
+body > * {
+    color: #ffffff;
+    background-color: #3f3f3f;
+}
+
+.nav-item {
+    text-align: center;
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+#mainBlock {
+    flex: 1
+}
+
+#verticalNav {
+    width: 30%;
+}
+
+#horizontalNav {
+    height: 10%
+}
+
+.container {
+    height: 100%;
+    border-radius: 100px 0 0 0;
+}
+
+.conatiner > * {
+    color: #000000;
+    background-color: #ffffff;
+}
+
+.icon {
+    fill: #ffffff
+}

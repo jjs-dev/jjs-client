@@ -134,7 +134,11 @@ func (apiClient *Api) createUserHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (apiClient *Api) staticContentHandle(w http.ResponseWriter, r *http.Request) {
-	data, err := ioutil.ReadFile("./static" + r.URL.Path[strings.Index(r.URL.Path, "/"):])
+	finalPath := r.URL.Path[strings.Index(r.URL.Path, "/"):]
+	data, err := ioutil.ReadFile("./static" + finalPath)
+	if err != nil {
+		data, err = ioutil.ReadFile("./static/icons" + finalPath)
+	}
 	if err != nil {
 		if apiClient.debug {
 			log.Println("Not found path: " +  r.URL.Path)
@@ -146,6 +150,8 @@ func (apiClient *Api) staticContentHandle(w http.ResponseWriter, r *http.Request
 			w.Header().Set("Content-Type", "text/css")
 		} else if strings.HasSuffix(r.URL.Path, "js") {
 			w.Header().Set("Content-Type", "application/javascript")
+		} else if strings.HasSuffix(r.URL.Path, "svg") {
+			w.Header().Set("Content-Type", "image/svg+xml")
 		} else {
 			w.Header().Set("Content-Type", "text/plain")
 		}

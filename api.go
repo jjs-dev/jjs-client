@@ -59,7 +59,7 @@ func (apiClient Api) authenticate(key string) (bool, error) {
 	apiClient.transport.authKey = key
 	err := apiClient.client.Query(context.Background(), &query, nil)
 	apiClient.transport.authKey = ""
-	if err != nil { // TODO: compare this error with error when bad cookie is set
+	if err != nil { // TODO: compare this error to error when bad cookie is set
 		if apiClient.debug {
 			log.Println("Error while authenticating: " + err.Error())
 		}
