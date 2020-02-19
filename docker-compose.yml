@@ -1,12 +1,15 @@
 version: '3.7'
 services:
   client:
-     image: docker.pkg.github.com/pavel-the-best/jjs-client/client:latest
+     image: jjs-client # or docker.pkg.github.com/pavel-the-best/jjs-client/client
      environment:
        JJS_API_URL: http://frontend
+#      CERT_FILE: /ssl/fullchain.pem
+#      KEY_FILE: /ssl/privkey.pem
+#     volume:
+#       - /etc/letsencrypt/archive/<domain>/:/ssl
      command:
        /jjs-client
-     volumes:
      ports:
        - "443:443"
-       - "80:80"
+       - "80:80" # or "80:8080" if DEBUG is set
