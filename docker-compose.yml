@@ -3,13 +3,17 @@ services:
   client:
      image: jjs-client # or docker.pkg.github.com/pavel-the-best/jjs-client/client
      environment:
+#       DEBUG: yep
        JJS_API_URL: http://frontend
-#      CERT_FILE: /ssl/fullchain.pem
-#      KEY_FILE: /ssl/privkey.pem
-#     volume:
-#       - /etc/letsencrypt/archive/<domain>/:/ssl
+#       CERT_FILE: /ssl/fullchain.pem
+#       KEY_FILE: /ssl/privkey.pem
      command:
-       /jjs-client
+       /jjs-client/jjs-client
+#     volumes: 
+#       - type: bind
+#         source: ${SSL_CERTIFICATE_PATH}
+#         target: /ssl
+#         read_only: true
      ports:
        - "443:443"
        - "80:80" # or "80:8080" if DEBUG is set
