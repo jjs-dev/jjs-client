@@ -14,8 +14,8 @@ FROM scratch
 COPY --from=builder /go/bin/ /jjs-client/
 COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
-WORKDIR ["/jjs-client"]
-CMD ["./jjs-client"]
+WORKDIR /jjs-client/
+ENTRYPOINT ["./jjs-client"]
 
 EXPOSE 80
 EXPOSE 443
