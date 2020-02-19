@@ -1,5 +1,6 @@
 body {
     flex-direction: column;
+    font-size: 4vh;
     display: flex;
     background-color: #3f3f3f;
 }
@@ -11,16 +12,20 @@ body {
     color: #ffffff;
 }
 
+.flex-column {
+    width: 100%
+}
+
 #mainBlock {
     flex: 1
 }
 
 #verticalNav {
-    width: 30%;
+    width: 70vh;
 }
 
 #horizontalNav {
-    height: 10%
+    height: 10vh;
 }
 
 .container-fluid {
@@ -31,5 +36,5 @@ body {
 }
 
 .svg {
-    fill: #00f;
+    filter: invert()
 }

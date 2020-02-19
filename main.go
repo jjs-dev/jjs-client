@@ -37,7 +37,7 @@ func (apiClient *Api) renderPage(w http.ResponseWriter, templatePath string, pag
 		if pusher, ok := w.(http.Pusher); ok {
 			if err := pusher.Push("/bootstrap.min.css", nil); err != nil {
 				if apiClient.debug {
-					apiClient.logger.Println("Error during pushing Bootstrap css: " + err.Error())
+					apiClient.logger.Println("Error while pushing Bootstrap css: " + err.Error())
 				}
 			}
 		}
