@@ -15,6 +15,14 @@ type Page struct {
 	Message template.HTML
 }
 
+func getAuthCookie(r *http.Request) string {
+	res, err := r.Cookie("auth")
+	if err != nil {
+		return ""
+	}
+	return res.Value
+}
+
 func (apiClient *Api) write500Error(w http.ResponseWriter, err error) {
 	w.WriteHeader(500)
 	message := "500 Internal Server Error"
@@ -97,16 +105,12 @@ func (apiClient *Api) authorizeHandle(w http.ResponseWriter, r *http.Request) {
 func (apiClient *Api) authenticateHandle(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("auth")
 	if err == nil {
-		res, err := apiClient.authenticate(cookie.Value)
+		res, err := apiClient.getApiVersion(cookie.Value)
 		if err != nil {
 			apiClient.write500Error(w, err)
 		}
 		w.WriteHeader(200)
-		if res {
-			_, _ = w.Write([]byte("Ok."))
-		} else {
-			_, _ = w.Write([]byte("Not ok."))
-		}
+		_, _ = fmt.Fprintf(w, res)
 	} else {
 		apiClient.write500Error(w, err)
 	}
@@ -121,11 +125,11 @@ func (apiClient *Api) createUserHandle(w http.ResponseWriter, r *http.Request) {
 		}
 		login := r.FormValue("login")
 		password := r.FormValue("password")
-		_, err := apiClient.createUser(login, password, []string{"Participants"})
+		_, err := apiClient.createUser(getAuthCookie(r), login, password, []string{"Participants"})
 		if err == nil {
 			http.Redirect(w, r, "/createUser?message=Done!&color=success", 301)
 		} else {
-			http.Redirect(w, r, "/createUser?message=Such username already exists&color=danger", 301)
+			http.Redirect(w, r, "/createUser?message=Failed to create user&color=danger", 301)
 		}
 	} else {
 		values := r.URL.Query()

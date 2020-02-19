@@ -3,122 +3,131 @@ package main
 import (
 	"context"
 	"encoding/base64"
-	"github.com/shurcooL/graphql"
+	"github.com/machinebox/graphql"
 	"log"
-	"net/http"
 	"os"
 )
 
-type HeaderTransport struct {
-	rt      http.RoundTripper
-	authKey string
-}
-
-func (transport *HeaderTransport) RoundTrip(request *http.Request) (*http.Response, error) {
-	if transport.authKey != "" {
-		request.Header.Set("X-Jjs-Auth", transport.authKey)
-	}
-	return transport.rt.RoundTrip(request)
-}
-
 type Api struct {
-	transport *HeaderTransport
 	client *graphql.Client
 	logger *log.Logger
 	debug bool
 }
 
-func (apiClient Api) addKeyToTransport(key string) {
-	apiClient.transport.authKey = key
-}
-
-func (apiClient Api) sendRun(runCode, toolchain, problem, contest string) (int, error) {
-	var mutation struct {
-		SubmitSimple struct {
+func (apiClient Api) sendRun(key, toolchain string, runCode []byte,  problem, contest string) (int, error) {
+	mutation := graphql.NewRequest(`
+		mutation ($toolchain: String!, $runCode: String!, $problem: String!, $contest: String!) {
+			submitSimple(toolchain: $toolchain, runCode: $runCode, problem: $problem, contest: $contest) {
+				Run {
+					id
+				}
+			}
+		}
+	`)
+	mutation.Var("toolchain", toolchain)
+	mutation.Var("runCode", base64.StdEncoding.EncodeToString(runCode))
+	mutation.Var("problem", problem)
+	mutation.Var("contest", contest)
+	if key != "" {
+		mutation.Header.Set("X-Jjs-Auth", key)
+	}
+	var response struct {
+		Run struct {
 			Id int
-		} `graphql:"submitSimple(toolchain: $toolchain, runCode: $runCode, problem: $problem, contest: $contest)"`
+		}
 	}
-	variables := map[string]interface{} {
-		"toolchain": graphql.String(toolchain),
-		"runCode": graphql.String(base64.StdEncoding.EncodeToString([]byte(runCode))),
-		"problem": graphql.String(problem),
-		"contest": graphql.String(contest),
-	}
-	err := apiClient.client.Mutate(context.Background(), &mutation, variables)
+	err := apiClient.client.Run(context.Background(), mutation, &response)
 	if err != nil {
 		if apiClient.debug {
 			apiClient.logger.Println("Error while sending run: " + err.Error())
 		}
 		return -1, err
 	}
-	return mutation.SubmitSimple.Id, nil
+	return response.Run.Id, nil
 }
 
-func (apiClient Api) authenticate(key string) (bool, error) {
-	var query struct {
-		ApiVersion graphql.String
+func (apiClient Api) getApiVersion(key string) (string, error) {
+	query := graphql.NewRequest(`
+		apiVersion {
+			version
+		}
+	`)
+	if key != "" {
+		query.Header.Set("X-Jjs-Auth", key)
 	}
-	apiClient.transport.authKey = key
-	err := apiClient.client.Query(context.Background(), &query, nil)
-	apiClient.transport.authKey = ""
+	var response struct {
+		version string
+	}
+	err := apiClient.client.Run(context.Background(), query, &response)
 	if err != nil { // TODO: compare this error to error when bad cookie is set
 		if apiClient.debug {
 			apiClient.logger.Println("Error while authenticating: " + err.Error())
 		}
-		return false, err
+		return "", err
 	}
-	return err == nil, nil
+	return response.version, nil
 }
 
 func (apiClient Api) authorize(login, password string) (string, error) {
-	var mutation struct {
+	mutation := graphql.NewRequest(`
+		mutation ($login: String!, $password: String!) {
+			authSimple (login: $login, password: $password) {
+				SessionToken {
+					data
+				}
+			}
+		}
+	`)
+	mutation.Var("login", login)
+	mutation.Var("password", password)
+	var response struct {
 		SessionToken struct {
 			Data string
-		}`graphql:"authSimple(login: $login, password: $password)"`
+		}
 	}
-	variables := map[string]interface{} {
-		"login": graphql.String(login),
-		"password": graphql.String(password),
-	}
-	err := apiClient.client.Mutate(context.Background(), &mutation, variables)
+	err := apiClient.client.Run(context.Background(), mutation, &response)
 	if err != nil {
 		if apiClient.debug {
 			apiClient.logger.Println("Error while authorizing: " + err.Error())
 		}
 		return "", err
 	}
-	return mutation.SessionToken.Data, nil
+	return response.SessionToken.Data, nil
 }
 
-func (apiClient Api) createUser(login, password string, groups []string) (string, error) {
-	var mutation struct {
+func (apiClient Api) createUser(key, login, password string, groups []string) (string, error) {
+	mutation := graphql.NewRequest(`
+		mutation ($login: String!, $password: String!, $groups: [String!]) {
+			createUser(login: $login, password: $password, groups: $groups) {
+				User {
+					id
+				}
+			}
+		}
+	`)
+	mutation.Var("login", login)
+	mutation.Var("password", password)
+	mutation.Var("groups", groups)
+	if key != "" {
+		mutation.Header.Set("X-Jjs-Auth", key)
+	}
+	var response struct {
 		User struct {
-			Id graphql.ID
-		}`graphql:"createUser(login: $login, password: $password, groups: $groups)"`
+			Id string
+		}
 	}
-	var graphqlGroups []graphql.String
-	for _, group := range groups {
-		graphqlGroups = append(graphqlGroups, graphql.String(group))
-	}
-	variables := map[string]interface{} {
-		"login": graphql.String(login),
-		"password": graphql.String(password),
-		"groups": graphqlGroups,
-	}
-	err := apiClient.client.Mutate(context.Background(), &mutation, variables)
+	err := apiClient.client.Run(context.Background(), mutation, &response)
 	if err != nil {
 		if apiClient.debug {
 			apiClient.logger.Println("Error while creating user: " + err.Error())
 		}
 		return "", err
 	}
-	return mutation.User.Id.(string), nil
+	return response.User.Id, nil
 }
 
 func initialize(apiURL string, logFile *os.File, debug bool) *Api {
-	transport := HeaderTransport{rt: http.DefaultTransport, authKey: ""}
-	httpClient := http.Client{Transport: &transport}
-	client := graphql.NewClient(apiURL, &httpClient)
+	client := graphql.NewClient(apiURL)
 	logger := log.New(logFile, "", log.LstdFlags)
-	return &Api{&transport, client, logger, debug}
+	return &Api{client, logger, debug}
 }
