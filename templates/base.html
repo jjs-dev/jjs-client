@@ -1,0 +1,34 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="en" class="h-100">
+<head>
+    <meta charset="UTF-8">
+    <title>{{template "title" .}}</title>
+    <link rel="preload" type="text/css" href="/bootstrap.min.css" as="style">
+    <link rel="stylesheet" type="text/css" href="/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="/style.css">
+</head>
+<body class="h-100">
+<ul class="nav" id="horizontalNav">
+    <li class="nav-item">
+        <a class="nav-item nav-link" href="#">JJS</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link disabled" href="#">Horizontal test #2</a>
+    </li>
+</ul>
+<div class="d-flex" id="mainBlock">
+    <div class="d-flex" id="verticalNav">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link">Nothing here totally</a>
+            </li>
+        </ul>
+    </div>
+    <div class="d-flex container-fluid align-items-center justify-content-center">
+        {{template "content" .}}
+    </div>
+</div>
+</body>
+</html>
+{{end}}

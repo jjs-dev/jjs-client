@@ -25,7 +25,7 @@ func (apiClient *Api) write500Error(w http.ResponseWriter, err error) {
 }
 
 func loadTemplate(path string) (*template.Template, error) {
-	t, err := template.ParseFiles("./templates/" + path)
+	t, err := template.ParseFiles("./templates/" + path, "./templates/base.html")
 	return t, err
 }
 
@@ -41,7 +41,7 @@ func (apiClient *Api) renderPage(w http.ResponseWriter, templatePath string, pag
 				}
 			}
 		}
-		err = t.Execute(w, page)
+		err = t.ExecuteTemplate(w, "base", page)
 		if err != nil {
 			apiClient.write500Error(w, err)
 		}
