@@ -1,0 +1,12 @@
+version: '3.7'
+services:
+  client:
+     image: docker.pkg.github.com/pavel-the-best/jjs-client/client:latest
+     environment:
+       JJS_API_URL: http://frontend
+     command:
+       /jjs-client
+     volumes:
+     ports:
+       - "443:443"
+       - "80:80"
