@@ -37,7 +37,7 @@ func (apiClient *Api) renderPage(w http.ResponseWriter, templatePath string, pag
 		if pusher, ok := w.(http.Pusher); ok {
 			if err := pusher.Push("/bootstrap.min.css", nil); err != nil {
 				if apiClient.debug {
-					log.Println("Error during pushing Bootstrap css: " + err.Error())
+					apiClient.logger.Println("Error during pushing Bootstrap css: " + err.Error())
 				}
 			}
 		}
@@ -73,7 +73,7 @@ func (apiClient *Api) authorizeHandle(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		if err := r.ParseForm(); err != nil {
 			if apiClient.debug {
-				log.Println("Error during parsing authorize POST form: " + err.Error())
+				apiClient.logger.Println("Error during parsing authorize POST form: " + err.Error())
 			}
 			w.WriteHeader(400)
 			_, _ = fmt.Fprintf(w, "400 Bad Request")
@@ -115,7 +115,7 @@ func (apiClient *Api) authenticateHandle(w http.ResponseWriter, r *http.Request)
 func (apiClient *Api) createUserHandle(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		if err := r.ParseForm(); err != nil {
-			log.Println("Error during parsing createUser POST form: " + err.Error())
+			apiClient.logger.Println("Error during parsing createUser POST form: " + err.Error())
 			w.WriteHeader(400)
 			_, _ = fmt.Fprintf(w, "400 Bad Request")
 		}
@@ -141,7 +141,7 @@ func (apiClient *Api) staticContentHandle(w http.ResponseWriter, r *http.Request
 	}
 	if err != nil {
 		if apiClient.debug {
-			log.Println("Not found path: " +  r.URL.Path)
+			apiClient.logger.Println("Not found path: " +  r.URL.Path)
 		}
 		w.WriteHeader(404)
 		_, _ = fmt.Fprintf(w, "404 Not Found")
@@ -161,14 +161,29 @@ func (apiClient *Api) staticContentHandle(w http.ResponseWriter, r *http.Request
 	}
 }
 
-
 func main() {
 	apiURL, found := os.LookupEnv("JJS_API_URL")
 	if !found {
 		log.Fatal("Please set the JJS_API_URL environmental variable")
 	}
+	logLocation, found := os.LookupEnv("LOG_LOCATION")
+	var logFile *os.File
+	if !found {
+		log.Println("No LOG_LOCATION found, writing to stdout")
+		logFile = os.Stdout
+	} else {
+		innerLogFile, err := os.OpenFile(logLocation, os.O_APPEND|os.O_WRONLY, 0600)
+		if err != nil {
+			log.Println("Failed to open LOG_LOCATION file, writing to stdout")
+			log.Println(err.Error())
+			logFile = os.Stdout
+		} else {
+			logFile = innerLogFile
+			defer innerLogFile.Close()
+		}
+	}
 	_, found = os.LookupEnv("DEBUG")
-	client := initialize(apiURL, found)
+	client := initialize(apiURL, logFile, found)
 	http.HandleFunc("/authenticate", client.authenticateHandle)
 	http.HandleFunc("/login", client.authorizeHandle)
 	http.HandleFunc("/createUser", client.createUserHandle)
@@ -179,14 +194,15 @@ func main() {
 	}
 	certFile, foundCert := os.LookupEnv("CERT_FILE")
 	keyFile, foundKey := os.LookupEnv("KEY_FILE")
+	client.logger.Println("Test string")
 	if foundCert && foundKey {
 		err := http.ListenAndServeTLS(":443", certFile, keyFile, nil)
 		if err != nil {
-			log.Panic(err)
+			client.logger.Panic(err)
 		}
 	}
 	err := http.ListenAndServe(address, nil)
 	if err != nil {
-		log.Panic(err)
+		client.logger.Panic(err)
 	}
 }

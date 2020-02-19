@@ -6,6 +6,7 @@ import (
 	"github.com/shurcooL/graphql"
 	"log"
 	"net/http"
+	"os"
 )
 
 type HeaderTransport struct {
@@ -23,6 +24,7 @@ func (transport *HeaderTransport) RoundTrip(request *http.Request) (*http.Respon
 type Api struct {
 	transport *HeaderTransport
 	client *graphql.Client
+	logger *log.Logger
 	debug bool
 }
 
@@ -45,7 +47,7 @@ func (apiClient Api) sendRun(runCode, toolchain, problem, contest string) (int, 
 	err := apiClient.client.Mutate(context.Background(), &mutation, variables)
 	if err != nil {
 		if apiClient.debug {
-			log.Println("Error while sending run: " + err.Error())
+			apiClient.logger.Println("Error while sending run: " + err.Error())
 		}
 		return -1, err
 	}
@@ -61,7 +63,7 @@ func (apiClient Api) authenticate(key string) (bool, error) {
 	apiClient.transport.authKey = ""
 	if err != nil { // TODO: compare this error to error when bad cookie is set
 		if apiClient.debug {
-			log.Println("Error while authenticating: " + err.Error())
+			apiClient.logger.Println("Error while authenticating: " + err.Error())
 		}
 		return false, err
 	}
@@ -81,7 +83,7 @@ func (apiClient Api) authorize(login, password string) (string, error) {
 	err := apiClient.client.Mutate(context.Background(), &mutation, variables)
 	if err != nil {
 		if apiClient.debug {
-			log.Println("Error while authorizing: " + err.Error())
+			apiClient.logger.Println("Error while authorizing: " + err.Error())
 		}
 		return "", err
 	}
@@ -106,16 +108,17 @@ func (apiClient Api) createUser(login, password string, groups []string) (string
 	err := apiClient.client.Mutate(context.Background(), &mutation, variables)
 	if err != nil {
 		if apiClient.debug {
-			log.Println("Error while creating user: " + err.Error())
+			apiClient.logger.Println("Error while creating user: " + err.Error())
 		}
 		return "", err
 	}
 	return mutation.User.Id.(string), nil
 }
 
-func initialize(apiURL string, debug bool) *Api {
+func initialize(apiURL string, logFile *os.File, debug bool) *Api {
 	transport := HeaderTransport{rt: http.DefaultTransport, authKey: ""}
 	httpClient := http.Client{Transport: &transport}
 	client := graphql.NewClient(apiURL, &httpClient)
-	return &Api{&transport, client, debug}
+	logger := log.New(logFile, "", log.LstdFlags)
+	return &Api{&transport, client, logger, debug}
 }
