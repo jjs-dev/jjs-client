@@ -41,7 +41,7 @@ func (apiClient Api) sendRun(key, toolchain string, runCode []byte,  problem, co
 		}
 		return -1, err
 	}
-	return response.Run.Id, nil
+	return response.SubmitSimple.Id, nil
 }
 
 func (apiClient Api) getApiVersion(key string) (string, error) {

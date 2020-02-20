@@ -138,7 +138,12 @@ func (apiClient *Api) createUserHandle(w http.ResponseWriter, r *http.Request) {
 		}
 		login := r.FormValue("login")
 		password := r.FormValue("password")
-		_, err := apiClient.createUser(getAuthCookie(r), login, password, []string{"Participants"})
+		groups := []string{"Participants"}
+		customGroup := r.FormValue("group")
+		if r.FormValue("groupNeeded") != "" && customGroup != "" {
+			groups = append(groups, customGroup)
+		}
+		_, err := apiClient.createUser(getAuthCookie(r), login, password, groups)
 		if err == nil {
 			http.Redirect(w, r, "/createUser?message=Done!&color=success", 301)
 		} else {
@@ -169,6 +174,8 @@ func (apiClient *Api) staticContentHandle(w http.ResponseWriter, r *http.Request
 			w.Header().Set("Content-Type", "application/javascript")
 		} else if strings.HasSuffix(r.URL.Path, "svg") {
 			w.Header().Set("Content-Type", "image/svg+xml")
+		} else if strings.HasSuffix(r.URL.Path, "ico") {
+			w.Header().Set("Content-Type", "image/x-icon")
 		} else {
 			w.Header().Set("Content-Type", "text/plain")
 		}

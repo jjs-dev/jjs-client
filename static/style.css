@@ -24,15 +24,20 @@ body {
     width: 70vh;
 }
 
-#horizontalNav {
+.horizontalNav {
     height: 10vh;
 }
 
 .container-fluid {
     height: 100%;
     border-radius: 100px 0 0 0;
+    font-size: 3vh;
     color: #000000;
     background-color: #ffffff;
+}
+
+.nav-link {
+    color: #ffffff;
 }
 
 .svg {

@@ -9,22 +9,27 @@
     <link rel="stylesheet" type="text/css" href="/style.css">
 </head>
 <body class="h-100">
-<ul class="nav" id="horizontalNav">
-    <li class="nav-item">
-        <a class="nav-item nav-link" href="#">JJS</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link disabled" href="#">Horizontal test #2</a>
-    </li>
+<ul class="nav horizontalNav">
+    <div class="d-flex flex-row">
+        <li class="nav-item">
+            <a class="nav-item nav-link">JJS</a>
+        </li>
+    </div>
+    <div class="d-flex flex-row flex-grow-1 justify-content-end">
+        <li class="nav-item">
+            <a class="nav-link" href="/settings"><img src="/circle-slash.svg" class="svg"></a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="/profile"><img src="/person-fill.svg" class="svg"></a>
+        </li>
+    </div>
 </ul>
 <div class="d-flex" id="mainBlock">
-    <div class="d-flex" id="verticalNav">
-        <ul class="nav flex-column">
-            <li class="nav-item">
-                <a class="nav-link">Nothing here totally</a>
-            </li>
-        </ul>
-    </div>
+    <ul class="nav flex-column" id="verticalNav">
+        <li class="nav-item">
+            <a class="nav-link">Nothing here totally</a>
+        </li>
+    </ul>
     <div class="d-flex container-fluid align-items-center justify-content-center">
         {{template "content" .}}
     </div>
