@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 type Page struct {
@@ -90,11 +91,20 @@ func (apiClient *Api) authorizeHandle(w http.ResponseWriter, r *http.Request) {
 		password := r.FormValue("password")
 		key, err := apiClient.authorize(login, password)
 		if err == nil {
-			cookie := http.Cookie{Name: "auth", Value: key}
+			cookie := http.Cookie{
+				Name: "auth",
+				Value: key,
+				Path: "/",
+				Expires: time.Now().Add(time.Hour * 24),
+			}
 			http.SetCookie(w, &cookie)
-			http.Redirect(w, r, "/authenticate", 301)
+			http.Redirect(w, r, "/", 301)
 		} else {
-			http.Redirect(w, r, "/login?message=Check credentials&color=danger", 301)
+			message := "Check credentials"
+			if apiClient.debug {
+				message += " (" + err.Error() + ")"
+			}
+			http.Redirect(w, r, "/login?message=" + message + "&color=danger", 301)
 		}
 	} else {
 		values := r.URL.Query()
@@ -110,7 +120,10 @@ func (apiClient *Api) authenticateHandle(w http.ResponseWriter, r *http.Request)
 			apiClient.write500Error(w, err)
 		}
 		w.WriteHeader(200)
-		_, _ = fmt.Fprintf(w, res)
+		_, err = w.Write([]byte(res))
+		if err != nil {
+			apiClient.write500Error(w, err)
+		}
 	} else {
 		apiClient.write500Error(w, err)
 	}
@@ -198,7 +211,6 @@ func main() {
 	}
 	certFile, foundCert := os.LookupEnv("CERT_FILE")
 	keyFile, foundKey := os.LookupEnv("KEY_FILE")
-	client.logger.Println("Test string")
 	if foundCert && foundKey {
 		err := http.ListenAndServeTLS(":443", certFile, keyFile, nil)
 		if err != nil {

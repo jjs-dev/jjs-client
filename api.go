@@ -18,9 +18,7 @@ func (apiClient Api) sendRun(key, toolchain string, runCode []byte,  problem, co
 	mutation := graphql.NewRequest(`
 		mutation ($toolchain: String!, $runCode: String!, $problem: String!, $contest: String!) {
 			submitSimple(toolchain: $toolchain, runCode: $runCode, problem: $problem, contest: $contest) {
-				Run {
-					id
-				}
+				id
 			}
 		}
 	`)
@@ -32,7 +30,7 @@ func (apiClient Api) sendRun(key, toolchain string, runCode []byte,  problem, co
 		mutation.Header.Set("X-Jjs-Auth", key)
 	}
 	var response struct {
-		Run struct {
+		SubmitSimple struct {
 			Id int
 		}
 	}
@@ -48,15 +46,15 @@ func (apiClient Api) sendRun(key, toolchain string, runCode []byte,  problem, co
 
 func (apiClient Api) getApiVersion(key string) (string, error) {
 	query := graphql.NewRequest(`
-		apiVersion {
-			version
+		query {
+			apiVersion
 		}
 	`)
 	if key != "" {
 		query.Header.Set("X-Jjs-Auth", key)
 	}
 	var response struct {
-		version string
+		ApiVersion string
 	}
 	err := apiClient.client.Run(context.Background(), query, &response)
 	if err != nil { // TODO: compare this error to error when bad cookie is set
@@ -65,23 +63,21 @@ func (apiClient Api) getApiVersion(key string) (string, error) {
 		}
 		return "", err
 	}
-	return response.version, nil
+	return response.ApiVersion, nil
 }
 
 func (apiClient Api) authorize(login, password string) (string, error) {
 	mutation := graphql.NewRequest(`
 		mutation ($login: String!, $password: String!) {
-			authSimple (login: $login, password: $password) {
-				SessionToken {
-					data
-				}
+ 			authSimple (login: $login, password: $password) {
+				data
 			}
 		}
 	`)
 	mutation.Var("login", login)
 	mutation.Var("password", password)
 	var response struct {
-		SessionToken struct {
+		AuthSimple struct {
 			Data string
 		}
 	}
@@ -92,16 +88,14 @@ func (apiClient Api) authorize(login, password string) (string, error) {
 		}
 		return "", err
 	}
-	return response.SessionToken.Data, nil
+	return response.AuthSimple.Data, nil
 }
 
 func (apiClient Api) createUser(key, login, password string, groups []string) (string, error) {
 	mutation := graphql.NewRequest(`
-		mutation ($login: String!, $password: String!, $groups: [String!]) {
+		mutation ($login: String!, $password: String!, $groups: [String!]!) {
 			createUser(login: $login, password: $password, groups: $groups) {
-				User {
-					id
-				}
+				id
 			}
 		}
 	`)
@@ -112,7 +106,7 @@ func (apiClient Api) createUser(key, login, password string, groups []string) (s
 		mutation.Header.Set("X-Jjs-Auth", key)
 	}
 	var response struct {
-		User struct {
+		CreateUser struct {
 			Id string
 		}
 	}
@@ -123,7 +117,7 @@ func (apiClient Api) createUser(key, login, password string, groups []string) (s
 		}
 		return "", err
 	}
-	return response.User.Id, nil
+	return response.CreateUser.Id, nil
 }
 
 func initialize(apiURL string, logFile *os.File, debug bool) *Api {
