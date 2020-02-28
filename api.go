@@ -108,7 +108,7 @@ func (apiClient Api) createUser(key, login, password string, groups []string) (s
 	err := apiClient.client.Run(context.Background(), mutation, &response)
 	if err != nil {
 		if apiClient.debug {
-			apiClient.logger.Println("Error while creating user: {}", err.Error())
+			apiClient.logger.Println("Error while creating user: " + err.Error())
 		}
 		return "", err
 	}
@@ -137,7 +137,7 @@ func (apiClient* Api) listContests(key string) ([]Contest, error) { // TODO: poi
 	err := apiClient.client.Run(context.Background(), query, &response)
 	if err != nil {
 		if apiClient.debug {
-			apiClient.logger.Println("Error while listing contests: {}", err.Error())
+			apiClient.logger.Println("Error while listing contests: " + err.Error())
 		}
 		return []Contest{}, err
 	}
@@ -176,7 +176,7 @@ func (apiClient *Api) ListToolChains(key string) ([]ToolChain, error) { // TODO:
 	err := apiClient.client.Run(context.Background(), query, &response)
 	if err != nil {
 		if apiClient.debug {
-			apiClient.logger.Println("Error while listing toolchains: {}", err.Error())
+			apiClient.logger.Println("Error while listing toolchains: " + err.Error())
 		}
 		return []ToolChain{}, err
 	}

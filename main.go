@@ -82,6 +82,7 @@ func (apiClient *Api) authorizeHandle(w http.ResponseWriter, r *http.Request) {
 			}
 			w.WriteHeader(400)
 			_, _ = fmt.Fprintf(w, "400 Bad Request")
+			return
 		}
 		login := r.FormValue("login")
 		password := r.FormValue("password")
@@ -114,6 +115,7 @@ func (apiClient *Api) authenticateHandle(w http.ResponseWriter, r *http.Request)
 		res, err := apiClient.getApiVersion(cookie.Value)
 		if err != nil {
 			apiClient.write500Error(w, err)
+			return
 		}
 		w.WriteHeader(200)
 		_, err = w.Write([]byte(res))
@@ -131,6 +133,7 @@ func (apiClient *Api) createUserHandle(w http.ResponseWriter, r *http.Request) {
 			apiClient.logger.Println("Error during parsing createUser POST form: " + err.Error())
 			w.WriteHeader(400)
 			_, _ = fmt.Fprintf(w, "400 Bad Request")
+			return
 		}
 		login := r.FormValue("login")
 		password := r.FormValue("password")
@@ -153,20 +156,47 @@ func (apiClient *Api) createUserHandle(w http.ResponseWriter, r *http.Request) {
 
 func (apiClient *Api) submitRunHandle(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
-
+		if err := r.ParseMultipartForm(32 << 20); err != nil {
+			apiClient.logger.Println("Error during parsing createUser POST form: " + err.Error())
+			w.WriteHeader(400)
+			_, _ = fmt.Fprintf(w, "400 Bad Request")
+			return
+		}
+		file, _, err := r.FormFile("code")
+		if err != nil {
+			apiClient.write500Error(w, err)
+			return
+		}
+		defer file.Close()
+		runCode, err := ioutil.ReadAll(file)
+		if err != nil {
+			apiClient.write500Error(w, err)
+			return
+		}
+		key := getAuthCookie(r)
+		contestId := r.FormValue("contestID")
+		problemId := r.FormValue("problemID")
+		toolchainId := r.FormValue("toolchainID")
+		id, err := apiClient.sendRun(key, toolchainId, runCode, problemId, contestId)
+		if err != nil {
+			apiClient.write500Error(w, err)
+		} else {
+			w.WriteHeader(200)
+			_, _ = fmt.Fprintf(w, "Done! Your run ID: %d", id)
+		}
 	} else {
 		values := r.URL.Query()
 		contest, err := apiClient.findContest(getAuthCookie(r), values.Get("contest_id"))
 		if err != nil {
 			apiClient.write500Error(w, err)
-		} else {
-			toolchains, err := apiClient.ListToolChains(getAuthCookie(r))
-			if err != nil {
-				apiClient.write500Error(w, err)
-			} else {
-				apiClient.renderPage(w, "sendRun.html", ProblemPage{Contest: contest, ToolChains: toolchains})
-			}
+			return
 		}
+		toolchains, err := apiClient.ListToolChains(getAuthCookie(r))
+		if err != nil {
+			apiClient.write500Error(w, err)
+			return
+		}
+		apiClient.renderPage(w, "sendRun.html", ProblemPage{Contest: contest, ToolChains: toolchains})
 	}
 }
 

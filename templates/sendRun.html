@@ -6,7 +6,7 @@ Submit run
     <div class="text-center">
         <h3>Submit run to JJS</h3>
     </div>
-    <form action="/submitRun" method="get">
+    <form action="/submitRun" method="post">
         <div class="input-group mb-2">
             <div class="input-group-prepend">
                 <div class="input-group-text">
@@ -37,7 +37,7 @@ Submit run
                     Toolchain
                 </div>
             </div>
-            <select class="custom-select" name="problemID">
+            <select class="custom-select" name="toolchainID">
                 <option selected>Choose...</option>
                 {{ range .ToolChains }}
                     <option value="{{ .Id }}">{{ .Name }}</option>
