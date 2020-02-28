@@ -12,10 +12,6 @@ import (
 	"time"
 )
 
-type Page struct {
-	Message template.HTML
-}
-
 func getAuthCookie(r *http.Request) string {
 	res, err := r.Cookie("auth")
 	if err != nil {
@@ -38,7 +34,7 @@ func loadTemplate(path string) (*template.Template, error) {
 	return t, err
 }
 
-func (apiClient *Api) renderPage(w http.ResponseWriter, templatePath string, page Page) {
+func (apiClient *Api) renderPage(w http.ResponseWriter, templatePath string, page interface{}) {
 	t, err := loadTemplate(templatePath)
 	if err == nil {
 		w.Header().Set("Content-Type", "text/html")
@@ -52,7 +48,7 @@ func (apiClient *Api) renderPage(w http.ResponseWriter, templatePath string, pag
 		}
 		err = t.ExecuteTemplate(w, "base", page)
 		if err != nil {
-			apiClient.write500Error(w, err)
+			apiClient.logger.Println(err.Error())
 		}
 	} else {
 		w.WriteHeader(404) // TODO: throw 500 error when file has been found, but there was an actual error
@@ -63,16 +59,16 @@ func (apiClient *Api) renderPage(w http.ResponseWriter, templatePath string, pag
 	}
 }
 
-func renderMessage(query *url.Values) Page {
+func renderMessage(query *url.Values) SimplePage {
 	message := query.Get("message")
 	if message == "" {
-		return Page{Message: ""}
+		return SimplePage{Message: ""}
 	} else {
 		color := query.Get("color")
 		if color == "" {
 			color = "primary"
 		}
-		return Page{Message: "<div class=\"alert alert-" + template.HTML(color) + "\" role=\"alert\">" +
+		return SimplePage{Message: "<div class=\"alert alert-" + template.HTML(color) + "\" role=\"alert\">" +
 			template.HTML(message) +
 			"</div>"}
 	}
@@ -155,6 +151,25 @@ func (apiClient *Api) createUserHandle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (apiClient *Api) submitRunHandle(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+
+	} else {
+		values := r.URL.Query()
+		contest, err := apiClient.findContest(getAuthCookie(r), values.Get("contest_id"))
+		if err != nil {
+			apiClient.write500Error(w, err)
+		} else {
+			toolchains, err := apiClient.ListToolChains(getAuthCookie(r))
+			if err != nil {
+				apiClient.write500Error(w, err)
+			} else {
+				apiClient.renderPage(w, "sendRun.html", ProblemPage{Contest: contest, ToolChains: toolchains})
+			}
+		}
+	}
+}
+
 func (apiClient *Api) staticContentHandle(w http.ResponseWriter, r *http.Request) {
 	finalPath := r.URL.Path[strings.Index(r.URL.Path, "/"):]
 	data, err := ioutil.ReadFile("./static" + finalPath)
@@ -211,6 +226,7 @@ func main() {
 	http.HandleFunc("/authenticate", client.authenticateHandle)
 	http.HandleFunc("/login", client.authorizeHandle)
 	http.HandleFunc("/createUser", client.createUserHandle)
+	http.HandleFunc("/submitRun", client.submitRunHandle)
 	http.HandleFunc("/", client.staticContentHandle)
 	address := ":80"
 	if client.debug {

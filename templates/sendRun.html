@@ -1,0 +1,58 @@
+{{define "title"}}
+Submit run
+{{end}}
+{{define "content"}}
+<div class="col-lg-5">
+    <div class="text-center">
+        <h3>Submit run to JJS</h3>
+    </div>
+    <form action="/submitRun" method="get">
+        <div class="input-group mb-2">
+            <div class="input-group-prepend">
+                <div class="input-group-text">
+                    Contest
+                </div>
+            </div>
+            <select class="custom-select" name="contestID">
+                <option selected>Choose...</option>
+                <option value="TODO">TODO</option>
+            </select>
+        </div>
+        <div class="input-group mb-2">
+            <div class="input-group-prepend">
+                <div class="input-group-text">
+                    Problem
+                </div>
+            </div>
+            <select class="custom-select" name="problemID">
+                <option selected>Choose...</option>
+                {{ range .Contest.Problems }}
+                    <option value="{{ .Id }}">{{ .Title }}</option>
+                {{end}}
+            </select>
+        </div>
+        <div class="input-group mb-2">
+            <div class="input-group-prepend">
+                <div class="input-group-text">
+                    Toolchain
+                </div>
+            </div>
+            <select class="custom-select" name="problemID">
+                <option selected>Choose...</option>
+                {{ range .ToolChains }}
+                    <option value="{{ .Id }}">{{ .Name }}</option>
+                {{end}}
+            </select>
+        </div>
+        <div class="input-group mb-2">
+            <div class="custom-file">
+                <input type="file" class="custom-file-input" name="code" id="fileInput">
+                <label class="custom-file-label" for="fileInput">Browse solution...</label>
+            </div>
+        </div>
+        <div class="d-flex justify-content-center">
+            <button type="submit" class="btn btn-primary" id="submit">Submit run</button>
+        </div>
+    </form>
+</div>
+{{end}}}

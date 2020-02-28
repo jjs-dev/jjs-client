@@ -3,16 +3,11 @@ package main
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"github.com/machinebox/graphql"
 	"log"
 	"os"
 )
-
-type Api struct {
-	client *graphql.Client
-	logger *log.Logger
-	debug bool
-}
 
 func (apiClient Api) sendRun(key, toolchain string, runCode []byte,  problem, contest string) (int, error) {
 	mutation := graphql.NewRequest(`
@@ -113,11 +108,79 @@ func (apiClient Api) createUser(key, login, password string, groups []string) (s
 	err := apiClient.client.Run(context.Background(), mutation, &response)
 	if err != nil {
 		if apiClient.debug {
-			apiClient.logger.Println("Error while creating user: " + err.Error())
+			apiClient.logger.Println("Error while creating user: {}", err.Error())
 		}
 		return "", err
 	}
 	return response.CreateUser.Id, nil
+}
+
+func (apiClient* Api) listContests(key string) ([]Contest, error) { // TODO: pointer
+	query := graphql.NewRequest(`
+		query {
+			contests {
+				title
+				id
+				problems {
+					title
+					id
+				}
+			}
+		}
+	`)
+	var response struct {
+		Contests []Contest
+	}
+	if key != "" {
+		query.Header.Set("X-Jjs-Auth", key)
+	}
+	err := apiClient.client.Run(context.Background(), query, &response)
+	if err != nil {
+		if apiClient.debug {
+			apiClient.logger.Println("Error while listing contests: {}", err.Error())
+		}
+		return []Contest{}, err
+	}
+	return response.Contests, nil
+}
+
+
+func (apiClient* Api) findContest(key, id string) (Contest, error) { // TODO: wait for JJS API Implementation
+	contests, err := apiClient.listContests(key)
+	if err != nil {
+		return Contest{}, err
+	}
+	for _, contest := range contests {
+		if contest.Id == id {
+			return contest, nil
+		}
+	}
+	return Contest{}, errors.New("not found contest")
+}
+
+func (apiClient *Api) ListToolChains(key string) ([]ToolChain, error) { // TODO: pointers
+	query := graphql.NewRequest(`
+		query {
+			toolchains {
+				name
+				id
+			}
+		}
+	`)
+	var response struct {
+		ToolChains []ToolChain
+	}
+	if key != "" {
+		query.Header.Set("X-Jjs-Auth", key)
+	}
+	err := apiClient.client.Run(context.Background(), query, &response)
+	if err != nil {
+		if apiClient.debug {
+			apiClient.logger.Println("Error while listing toolchains: {}", err.Error())
+		}
+		return []ToolChain{}, err
+	}
+	return response.ToolChains, nil
 }
 
 func initialize(apiURL string, logFile *os.File, debug bool) *Api {
