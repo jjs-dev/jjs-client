@@ -8,9 +8,13 @@ Login
     </div>
     <form action="/login" method="post">
         <div class="input-group mb-2">
+            <span class="input-group-prepend input-group-text">@</span>
             <input type="text" class="form-control" id="loginInput" placeholder="Enter your login" name="login">
         </div>
         <div class="input-group mb-2">
+            <div class="input-group-prepend">
+                <span class="input-group-text"><img src="/lock-fill.svg"></span>
+            </div>
             <input type="password" class="form-control" id="passwordInput" placeholder="Enter your password" name="password">
         </div>
         {{.Message}}
