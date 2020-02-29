@@ -9,6 +9,13 @@ import (
     "os"
 )
 
+func setHeaders(request *graphql.Request, key string) {
+    if key != "" {
+        request.Header.Set("X-Jjs-Auth", key)
+    }
+    request.Header.Set("Connection", "close")
+}
+
 func (apiClient Api) sendRun(key, toolchain string, runCode []byte,  problem, contest string) (int, error) {
     mutation := graphql.NewRequest(`
         mutation ($toolchain: String!, $runCode: String!, $problem: String!, $contest: String!) {
@@ -21,9 +28,7 @@ func (apiClient Api) sendRun(key, toolchain string, runCode []byte,  problem, co
     mutation.Var("runCode", base64.StdEncoding.EncodeToString(runCode))
     mutation.Var("problem", problem)
     mutation.Var("contest", contest)
-    if key != "" {
-        mutation.Header.Set("X-Jjs-Auth", key)
-    }
+    setHeaders(mutation, key)
     var response struct {
         SubmitSimple struct {
             Id int
@@ -45,9 +50,7 @@ func (apiClient Api) getApiVersion(key string) (string, error) {
             apiVersion
         }
     `)
-    if key != "" {
-        query.Header.Set("X-Jjs-Auth", key)
-    }
+    setHeaders(query, key)
     var response struct {
         ApiVersion string
     }
@@ -71,6 +74,7 @@ func (apiClient Api) authorize(login, password string) (string, error) {
     `)
     mutation.Var("login", login)
     mutation.Var("password", password)
+    setHeaders(mutation, "")
     var response struct {
         AuthSimple struct {
             Data string
@@ -97,9 +101,7 @@ func (apiClient Api) createUser(key, login, password string, groups []string) (s
     mutation.Var("login", login)
     mutation.Var("password", password)
     mutation.Var("groups", groups)
-    if key != "" {
-        mutation.Header.Set("X-Jjs-Auth", key)
-    }
+    setHeaders(mutation, key)
     var response struct {
         CreateUser struct {
             Id string
@@ -131,9 +133,7 @@ func (apiClient* Api) listContests(key string) ([]Contest, error) { // TODO: poi
     var response struct {
         Contests []Contest
     }
-    if key != "" {
-        query.Header.Set("X-Jjs-Auth", key)
-    }
+    setHeaders(query, key)
     err := apiClient.client.Run(context.Background(), query, &response)
     if err != nil {
         if apiClient.debug {
@@ -170,9 +170,7 @@ func (apiClient *Api) ListToolChains(key string) ([]ToolChain, error) { // TODO:
     var response struct {
         ToolChains []ToolChain
     }
-    if key != "" {
-        query.Header.Set("X-Jjs-Auth", key)
-    }
+    setHeaders(query, key)
     err := apiClient.client.Run(context.Background(), query, &response)
     if err != nil {
         if apiClient.debug {
