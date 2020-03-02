@@ -4,20 +4,10 @@ Submit run
 {{define "content"}}
 <div class="col-lg-6">
     <div class="text-center">
-        <h3>Submit run to JJS</h3>
+        <h3>Submit run to {{ .Contest.Title }}</h3>
     </div>
     <form action="/submitRun" enctype="multipart/form-data" method="post">
-        <div class="input-group mb-2">
-            <div class="input-group-prepend">
-                <div class="input-group-text">
-                    Contest
-                </div>
-            </div>
-            <select class="custom-select" name="contestID">
-                <option selected>Choose...</option>
-                <option value="TODO">TODO</option>
-            </select>
-        </div>
+        <input type="hidden" value="{{ .Contest.Id }}" name="contestID">
         <div class="input-group mb-2">
             <div class="input-group-prepend">
                 <div class="input-group-text">
