@@ -3,7 +3,6 @@ package main
 import (
     "context"
     "encoding/base64"
-    "errors"
     "github.com/machinebox/graphql"
     "log"
     "os"
@@ -149,17 +148,32 @@ func (apiClient* Api) listContests(key string) ([]*Contest, error) {
 }
 
 
-func (apiClient* Api) findContest(key, id string) (*Contest, error) { // TODO: wait for JJS API Implementation
-    contests, err := apiClient.listContests(key)
+func (apiClient* Api) findContest(key, contestID string) (*Contest, error) {
+    query := graphql.NewRequest(`
+        query ($contestID: String!) {
+            contest(name: $contestID) {
+                title
+                id
+                problems {
+                    title
+                    id
+                }
+            }
+        }
+    `)
+    query.Var("contestID", contestID)
+    setHeaders(query, key)
+    var response struct {
+        Contest Contest
+    }
+    err := apiClient.client.Run(context.Background(), query, &response)
     if err != nil {
+        if apiClient.debug {
+            apiClient.logger.Println("Error while finding contest: " + err.Error())
+        }
         return &Contest{}, err
     }
-    for _, contest := range contests {
-        if contest.Id == id {
-            return contest, nil
-        }
-    }
-    return &Contest{}, errors.New("not found contest")
+    return &response.Contest, nil
 }
 
 func (apiClient *Api) ListToolChains(key string) ([]*ToolChain, error) {
