@@ -141,8 +141,8 @@ func (apiClient* Api) listContests(key string) ([]*Contest, error) {
         return []*Contest{}, err
     }
     result := make([]*Contest, len(response.Contests))
-    for i, contest := range response.Contests {
-        result[i] = &contest
+    for i := 0; i < len(response.Contests); i += 1 {
+        result[i] = &response.Contests[i]
     }
     return result, nil
 }
@@ -197,8 +197,8 @@ func (apiClient *Api) ListToolChains(key string) ([]*ToolChain, error) {
         return []*ToolChain{}, err
     }
     result := make([]*ToolChain, len(response.ToolChains))
-    for i, toolchain := range response.ToolChains {
-        result[i] = &toolchain
+    for i := 0; i < len(response.ToolChains); i += 1 {
+        result[i] = &response.ToolChains[i]
     }
     return result, nil
 }
