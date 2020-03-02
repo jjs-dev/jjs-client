@@ -117,7 +117,7 @@ func (apiClient Api) createUser(key, login, password string, groups []string) (s
     return response.CreateUser.Id, nil
 }
 
-func (apiClient* Api) listContests(key string) ([]Contest, error) { // TODO: pointer
+func (apiClient* Api) listContests(key string) ([]*Contest, error) {
     query := graphql.NewRequest(`
         query {
             contests {
@@ -139,26 +139,30 @@ func (apiClient* Api) listContests(key string) ([]Contest, error) { // TODO: poi
         if apiClient.debug {
             apiClient.logger.Println("Error while listing contests: " + err.Error())
         }
-        return []Contest{}, err
+        return []*Contest{}, err
     }
-    return response.Contests, nil
+    result := make([]*Contest, len(response.Contests))
+    for i, contest := range response.Contests {
+        result[i] = &contest
+    }
+    return result, nil
 }
 
 
-func (apiClient* Api) findContest(key, id string) (Contest, error) { // TODO: wait for JJS API Implementation
+func (apiClient* Api) findContest(key, id string) (*Contest, error) { // TODO: wait for JJS API Implementation
     contests, err := apiClient.listContests(key)
     if err != nil {
-        return Contest{}, err
+        return &Contest{}, err
     }
     for _, contest := range contests {
         if contest.Id == id {
             return contest, nil
         }
     }
-    return Contest{}, errors.New("not found contest")
+    return &Contest{}, errors.New("not found contest")
 }
 
-func (apiClient *Api) ListToolChains(key string) ([]ToolChain, error) { // TODO: pointers
+func (apiClient *Api) ListToolChains(key string) ([]*ToolChain, error) {
     query := graphql.NewRequest(`
         query {
             toolchains {
@@ -176,9 +180,13 @@ func (apiClient *Api) ListToolChains(key string) ([]ToolChain, error) { // TODO:
         if apiClient.debug {
             apiClient.logger.Println("Error while listing toolchains: " + err.Error())
         }
-        return []ToolChain{}, err
+        return []*ToolChain{}, err
     }
-    return response.ToolChains, nil
+    result := make([]*ToolChain, len(response.ToolChains))
+    for i, toolchain := range response.ToolChains {
+        result[i] = &toolchain
+    }
+    return result, nil
 }
 
 func initialize(apiURL string, logFile *os.File, debug bool) *Api {
