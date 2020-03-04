@@ -9,6 +9,7 @@ import (
     "net/url"
     "os"
     "strings"
+    "sync"
     "time"
 )
 
@@ -230,6 +231,20 @@ func (apiClient *Api) staticContentHandle(w http.ResponseWriter, r *http.Request
     }
 }
 
+func (apiClient *Api) ListenAndServeAndHandleError(TLS bool, address, keyFile, certFile string) {
+    if TLS && keyFile != "" && certFile != "" {
+        err := http.ListenAndServeTLS(address, keyFile, certFile, nil)
+        if err != nil {
+            apiClient.logger.Panic(err)
+        }
+    } else if !TLS {
+        err := http.ListenAndServe(address, nil)
+        if err != nil {
+            apiClient.logger.Panic(err)
+        }
+    }
+}
+
 func main() {
     apiURL, found := os.LookupEnv("JJS_API_URL")
     if !found {
@@ -262,16 +277,11 @@ func main() {
     if client.debug {
         address = ":8080"
     }
-    certFile, foundCert := os.LookupEnv("CERT_FILE")
-    keyFile, foundKey := os.LookupEnv("KEY_FILE")
-    if foundCert && foundKey {
-        err := http.ListenAndServeTLS(":443", certFile, keyFile, nil)
-        if err != nil {
-            client.logger.Panic(err)
-        }
-    }
-    err := http.ListenAndServe(address, nil)
-    if err != nil {
-        client.logger.Panic(err)
-    }
+    certFile, _ := os.LookupEnv("CERT_FILE")
+    keyFile, _ := os.LookupEnv("KEY_FILE")
+    var wg sync.WaitGroup
+    wg.Add(2)
+    go client.ListenAndServeAndHandleError(false, address, "", "")
+    go client.ListenAndServeAndHandleError(true, ":443", certFile, keyFile)
+    wg.Wait()
 }
