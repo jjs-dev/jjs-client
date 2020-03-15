@@ -192,12 +192,19 @@ func (apiClient *Api) submitRunHandle(w http.ResponseWriter, r *http.Request) {
             apiClient.write500Error(w, err)
             return
         }
-        toolchains, err := apiClient.ListToolChains(getAuthCookie(r))
+        toolchains, err := apiClient.listToolChains(getAuthCookie(r))
         if err != nil {
             apiClient.write500Error(w, err)
             return
         }
-        apiClient.renderPage(w, "sendRun.html", ProblemPage{Contest: contest, ToolChains: toolchains})
+        problemId := values.Get("problem_id")
+        var problem Problem
+        for _, problem = range contest.Problems {
+            if problem.Id == problemId {
+                break
+            }
+        }
+        apiClient.renderPage(w, "sendRun.html", ProblemPage{Contest: contest, ToolChains: toolchains, Problem: &problem})
     }
 }
 

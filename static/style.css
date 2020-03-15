@@ -6,14 +6,17 @@ body {
 }
 
 .nav-item {
+    padding-top: 2vh;
+    padding-bottom: 2vh;
     text-align: center;
-    margin-top: auto;
-    margin-bottom: auto;
-    color: #ffffff;
+    font-size: 3vh;
+    color: #f0f0f0;
 }
 
 .flex-column {
-    width: 100%
+    width: 100%;
+    margin-top: auto;
+    margin-bottom: auto;
 }
 
 #mainBlock {
@@ -30,10 +33,10 @@ body {
 
 .container-fluid {
     height: 100%;
-    border-radius: 100px 0 0 0;
+    border-radius: 50px 0 0 0;
     font-size: 3vh;
     color: #000000;
-    background-color: #ffffff;
+    background-color: #fbfbfb;
 }
 
 .nav-link {

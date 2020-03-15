@@ -1,26 +1,33 @@
 {{define "title"}}
 Submit run
 {{end}}
+{{define "nav"}}
+{{ $currentProblem := .Problem }}
+{{ $Contest := .Contest}}
+{{ range $index, $problem := .Contest.Problems }}
+    {{ if eq $currentProblem.Id $problem.Id }}
+        <li class="nav-item active">
+            <a class="nav-link" href="#">
+                {{ $problem.Id }}. {{ $problem.Title }}
+            </a>
+        </li>
+    {{ else }}
+        <li class="nav-item">
+            <a class="nav-link" href="/submitRun?contest_id={{ $Contest.Id }}&problem_id={{ $problem.Id }}">
+                {{ $problem.Id }}. {{ $problem.Title }}
+            </a>
+        </li>
+    {{ end }}
+{{end}}
+{{end}}
 {{define "content"}}
 <div class="col-lg-6">
     <div class="text-center">
-        <h3>Submit run to {{ .Contest.Title }}</h3>
+        <h3>Submit run to {{ .Contest.Title }} to problem {{ .Problem.Id }} ({{ .Problem.Title }})</h3>
     </div>
     <form action="/submitRun" enctype="multipart/form-data" method="post">
         <input type="hidden" value="{{ .Contest.Id }}" name="contestID">
-        <div class="input-group mb-2">
-            <div class="input-group-prepend">
-                <div class="input-group-text">
-                    Problem
-                </div>
-            </div>
-            <select class="custom-select" name="problemID">
-                <option selected>Choose...</option>
-                {{ range .Contest.Problems }}
-                    <option value="{{ .Id }}">{{ .Title }}</option>
-                {{end}}
-            </select>
-        </div>
+        <input type="hidden" value="{{ .Problem.Id }}" name="problemID">
         <div class="input-group mb-2">
             <div class="input-group-prepend">
                 <div class="input-group-text">

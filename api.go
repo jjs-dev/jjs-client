@@ -176,7 +176,7 @@ func (apiClient* Api) findContest(key, contestID string) (*Contest, error) {
     return &response.Contest, nil
 }
 
-func (apiClient *Api) ListToolChains(key string) ([]*ToolChain, error) {
+func (apiClient *Api) listToolChains(key string) ([]*ToolChain, error) {
     query := graphql.NewRequest(`
         query {
             toolchains {

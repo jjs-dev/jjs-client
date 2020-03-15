@@ -34,5 +34,6 @@ type SimplePage struct {
 
 type ProblemPage struct {
     Contest *Contest
+    Problem *Problem
     ToolChains []*ToolChain
 }
