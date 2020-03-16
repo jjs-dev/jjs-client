@@ -41,7 +41,7 @@ func (apiClient *Api) renderPage(w http.ResponseWriter, templatePath string, pag
         w.Header().Set("Content-Type", "text/html")
         w.WriteHeader(200)
         if pusher, ok := w.(http.Pusher); ok {
-            if err := pusher.Push("/bootstrap.min.css", nil); err != nil {
+            if err := pusher.Push("/static/bootstrap.min.css", nil); err != nil {
                 if apiClient.debug {
                     apiClient.logger.Println("Error while pushing Bootstrap css: " + err.Error())
                 }
@@ -208,8 +208,30 @@ func (apiClient *Api) submitRunHandle(w http.ResponseWriter, r *http.Request) {
     }
 }
 
+func (apiClient* Api) mainHandle(w http.ResponseWriter, r *http.Request) {
+    if r.URL.Path != "/" {
+        if apiClient.debug {
+            apiClient.logger.Println("Not found path: " +  r.URL.Path)
+        }
+        w.WriteHeader(404)
+        _, _ = fmt.Fprintf(w, "404 Not Found")
+        return
+    }
+    key := getAuthCookie(r)
+    if key == "" {
+        http.Redirect(w, r, "/login", 301)
+    } else {
+        _, err := apiClient.getApiVersion(key)
+        if err != nil {
+            http.Redirect(w, r, "/login", 301)
+        } else {
+            http.Redirect(w, r, "/submitRun", 301)
+        }
+    }
+}
+
 func (apiClient *Api) staticContentHandle(w http.ResponseWriter, r *http.Request) {
-    finalPath := r.URL.Path[strings.Index(r.URL.Path, "/"):]
+    finalPath := r.URL.Path[strings.LastIndex(r.URL.Path, "/"):]
     data, err := ioutil.ReadFile("./static" + finalPath)
     if err != nil {
         data, err = ioutil.ReadFile("./static/icons" + finalPath)
@@ -232,7 +254,11 @@ func (apiClient *Api) staticContentHandle(w http.ResponseWriter, r *http.Request
         } else {
             w.Header().Set("Content-Type", "text/plain")
         }
-        w.Header().Set("Cache-Control", "max-age=3600")
+        if apiClient.debug {
+            w.Header().Set("Cache-Control", "No-Cache")
+        } else {
+            w.Header().Set("Cache-Control", "Max-Age=86400")
+        }
         w.WriteHeader(200)
         _, _ = w.Write(data)
     }
@@ -279,7 +305,8 @@ func main() {
     http.HandleFunc("/login", client.authorizeHandle)
     http.HandleFunc("/createUser", client.createUserHandle)
     http.HandleFunc("/submitRun", client.submitRunHandle)
-    http.HandleFunc("/", client.staticContentHandle)
+    http.HandleFunc("/static/", client.staticContentHandle)
+    http.HandleFunc("/", client.mainHandle)
     address := ":80"
     if client.debug {
         address = ":8080"
@@ -290,5 +317,7 @@ func main() {
     wg.Add(2)
     go client.ListenAndServeAndHandleError(false, address, "", "")
     go client.ListenAndServeAndHandleError(true, ":443", certFile, keyFile)
+    runs, _ := client.listRuns("")
+    fmt.Printf("%+v\n", runs)
     wg.Wait()
 }

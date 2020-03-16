@@ -2,7 +2,7 @@ body {
     flex-direction: column;
     font-size: 4vh;
     display: flex;
-    background-color: #3f3f3f;
+    background-color: #404040;
 }
 
 .nav-item {
