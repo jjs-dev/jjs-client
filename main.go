@@ -255,39 +255,6 @@ func (apiClient *Api) mainHandle(w http.ResponseWriter, r *http.Request) {
     }
 }
 
-func (apiClient *Api) staticContentHandle(w http.ResponseWriter, r *http.Request) {
-    finalPath := r.URL.Path[strings.LastIndex(r.URL.Path, "/"):]
-    data, err := ioutil.ReadFile("./static" + finalPath)
-    if err != nil {
-        data, err = ioutil.ReadFile("./static/icons" + finalPath)
-    }
-    if err != nil {
-        if apiClient.debug {
-            apiClient.logger.Println("Not found path: " + r.URL.Path)
-        }
-        http.NotFound(w, r)
-    } else {
-        if strings.HasSuffix(r.URL.Path, "css") {
-            w.Header().Set("Content-Type", "text/css")
-        } else if strings.HasSuffix(r.URL.Path, "js") {
-            w.Header().Set("Content-Type", "application/javascript")
-        } else if strings.HasSuffix(r.URL.Path, "svg") {
-            w.Header().Set("Content-Type", "image/svg+xml")
-        } else if strings.HasSuffix(r.URL.Path, "ico") {
-            w.Header().Set("Content-Type", "image/x-icon")
-        } else {
-            w.Header().Set("Content-Type", "text/plain")
-        }
-        if apiClient.debug {
-            w.Header().Set("Cache-Control", "No-Cache")
-        } else {
-            w.Header().Set("Cache-Control", "Max-Age=86400")
-        }
-        w.WriteHeader(200)
-        _, _ = w.Write(data)
-    }
-}
-
 func (apiClient *Api) ListenAndServeAndHandleError(TLS bool, address, keyFile, certFile string) {
     if TLS && keyFile != "" && certFile != "" {
         err := http.ListenAndServeTLS(address, keyFile, certFile, nil)
@@ -300,6 +267,13 @@ func (apiClient *Api) ListenAndServeAndHandleError(TLS bool, address, keyFile, c
             apiClient.logger.Panic(err)
         }
     }
+}
+
+func maxAgeHandler(maxAge int, handler http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r* http.Request) {
+        w.Header().Add("Cache-Control", fmt.Sprintf("Max-Age: %d, Public, Must-Revalidate, Proxy-Revalidate", maxAge))
+        handler.ServeHTTP(w, r)
+    })
 }
 
 func main() {
@@ -328,8 +302,8 @@ func main() {
     http.HandleFunc("/authenticate", client.authenticateHandle)
     http.HandleFunc("/login", client.authorizeHandle)
     http.HandleFunc("/createUser", client.createUserHandle)
-    http.HandleFunc("/static/", client.staticContentHandle)
     http.HandleFunc("/contest/", client.contestHandle)
+    http.Handle("/static/", maxAgeHandler(60 * 60 * 24, http.FileServer(http.Dir("."))))
     http.HandleFunc("/", client.mainHandle)
     address := ":80"
     if client.debug {
