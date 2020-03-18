@@ -250,7 +250,7 @@ func (apiClient *Api) mainHandle(w http.ResponseWriter, r *http.Request) {
         if err != nil {
             http.Redirect(w, r, "/login", 301)
         } else {
-            http.Redirect(w, r, "/submitRun", 301)
+            http.Redirect(w, r, "/contest/", 301)
         }
     }
 }
