@@ -27,25 +27,13 @@ Submit run
     <form action="" enctype="multipart/form-data" method="post">
         <input type="hidden" value="{{ .Contest.Id }}" name="contestID">
         <input type="hidden" value="{{ .Problem.Id }}" name="problemID">
-        <div class="input-group mb-2">
-            <div class="input-group-prepend">
-                <div class="input-group-text">
-                    Toolchain
-                </div>
-            </div>
-            <select class="custom-select" name="toolchainID">
-                <option selected>Choose...</option>
-                {{ range .ToolChains }}
-                    <option value="{{ .Id }}">{{ .Name }}</option>
-                {{end}}
-            </select>
-        </div>
-        <div class="input-group mb-2">
-            <div class="custom-file">
-                <input type="file" class="custom-file-input" name="code" id="fileInput">
-                <label class="custom-file-label" for="fileInput">Browse solution...</label>
-            </div>
-        </div>
+        <select class="custom-select mb-2" name="toolchainID" required>
+            <option selected disabled value="">Choose toolchain...</option>
+            {{ range .ToolChains }}
+                <option value="{{ .Id }}">{{ .Name }}</option>
+            {{end}}
+        </select>
+        <input type="file" class="form-control-file my-file" name="code" id="fileInput" required>
         <div class="d-flex justify-content-center">
             <button type="submit" class="btn btn-primary" id="submit">Submit run</button>
         </div>
