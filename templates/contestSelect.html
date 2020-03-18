@@ -1,0 +1,17 @@
+{{define "title"}}
+Select contest
+{{end}}
+{{define "nav"}}
+    <li class="nav-item">
+        Nothing here
+    </li>
+{{end}}
+{{define "content"}}
+    <div class="d-flex flex-wrap">
+        {{ range .Contests}}
+            <div class="contest">
+                <a href="/contest/{{ .Id }}">{{ .Title }}</a>
+            </div>
+        {{end}}
+    </div>
+{{end}}

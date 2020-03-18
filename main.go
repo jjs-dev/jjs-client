@@ -31,7 +31,7 @@ func (apiClient *Api) write500Error(w http.ResponseWriter, err error) {
 }
 
 func loadTemplate(path string) (*template.Template, error) {
-    t, err := template.ParseFiles("./templates/" + path, "./templates/base.html")
+    t, err := template.ParseFiles("./templates/"+path, "./templates/base.html")
     return t, err
 }
 
@@ -90,9 +90,9 @@ func (apiClient *Api) authorizeHandle(w http.ResponseWriter, r *http.Request) {
         key, err := apiClient.authorize(login, password)
         if err == nil {
             cookie := http.Cookie{
-                Name: "auth",
-                Value: key,
-                Path: "/",
+                Name:    "auth",
+                Value:   key,
+                Path:    "/",
                 Expires: time.Now().Add(time.Hour * 24),
             }
             http.SetCookie(w, &cookie)
@@ -102,7 +102,7 @@ func (apiClient *Api) authorizeHandle(w http.ResponseWriter, r *http.Request) {
             if apiClient.debug {
                 message += " (" + err.Error() + ")"
             }
-            http.Redirect(w, r, "/login?message=" + message + "&color=danger", 301)
+            http.Redirect(w, r, "/login?message="+message+"&color=danger", 301)
         }
     } else {
         values := r.URL.Query()
@@ -155,7 +155,7 @@ func (apiClient *Api) createUserHandle(w http.ResponseWriter, r *http.Request) {
     }
 }
 
-func (apiClient *Api) submitRunHandle(w http.ResponseWriter, r *http.Request) {
+func (apiClient *Api) submitRunHandle(w http.ResponseWriter, r *http.Request, contest *Contest, problemId string) {
     if r.Method == "POST" {
         if err := r.ParseMultipartForm(32 << 20); err != nil {
             apiClient.logger.Println("Error during parsing createUser POST form: " + err.Error())
@@ -175,10 +175,8 @@ func (apiClient *Api) submitRunHandle(w http.ResponseWriter, r *http.Request) {
             return
         }
         key := getAuthCookie(r)
-        contestId := r.FormValue("contestID")
-        problemId := r.FormValue("problemID")
         toolchainId := r.FormValue("toolchainID")
-        id, err := apiClient.sendRun(key, toolchainId, runCode, problemId, contestId)
+        id, err := apiClient.sendRun(key, toolchainId, runCode, problemId, contest.Id)
         if err != nil {
             apiClient.write500Error(w, err)
         } else {
@@ -186,18 +184,11 @@ func (apiClient *Api) submitRunHandle(w http.ResponseWriter, r *http.Request) {
             _, _ = fmt.Fprintf(w, "Done! Your run ID: %d", id)
         }
     } else {
-        values := r.URL.Query()
-        contest, err := apiClient.findContest(getAuthCookie(r), values.Get("contest_id"))
-        if err != nil {
-            apiClient.write500Error(w, err)
-            return
-        }
         toolchains, err := apiClient.listToolChains(getAuthCookie(r))
         if err != nil {
             apiClient.write500Error(w, err)
             return
         }
-        problemId := values.Get("problem_id")
         var problem Problem
         for _, problem = range contest.Problems {
             if problem.Id == problemId {
@@ -208,13 +199,47 @@ func (apiClient *Api) submitRunHandle(w http.ResponseWriter, r *http.Request) {
     }
 }
 
-func (apiClient* Api) mainHandle(w http.ResponseWriter, r *http.Request) {
+func (apiClient *Api) contestNameHandle(w http.ResponseWriter, r *http.Request, contestName, problemId string) {
+    contest, err := apiClient.findContest(getAuthCookie(r), contestName)
+    if err != nil {
+        apiClient.write500Error(w, err)
+        return
+    }
+    if problemId == "" {
+        apiClient.renderPage(w, "contestMain.html", ContestMainPage{Contest: contest})
+        return
+    } else {
+        apiClient.submitRunHandle(w, r, contest, problemId)
+    }
+}
+
+func (apiClient *Api) contestHandle(w http.ResponseWriter, r *http.Request) {
+    if r.URL.Path == "/contest" || r.URL.Path == "/contest/" {
+        contests, err := apiClient.listContests(getAuthCookie(r))
+        if err != nil {
+            apiClient.write500Error(w, err)
+        } else {
+            apiClient.renderPage(w, "contestSelect.html", ContestSelectPage{Contests: contests})
+        }
+    } else {
+        contestName := r.URL.Path[len("/contest/"):]
+        index := strings.Index(contestName, "/")
+        if index == -1 {
+            http.Redirect(w, r, r.URL.Path+"/", 301)
+            return
+        }
+        problemID := contestName[index + 1:]
+        contestName = contestName[:index]
+        apiClient.contestNameHandle(w, r, contestName, problemID)
+    }
+}
+
+func (apiClient *Api) mainHandle(w http.ResponseWriter, r *http.Request) {
     if r.URL.Path != "/" {
         if apiClient.debug {
-            apiClient.logger.Println("Not found path: " +  r.URL.Path)
+            apiClient.logger.Println("Not found path: " + r.URL.Path)
         }
-        w.WriteHeader(404)
-        _, _ = fmt.Fprintf(w, "404 Not Found")
+        http.NotFound(w, r)
         return
     }
     key := getAuthCookie(r)
@@ -238,10 +263,9 @@ func (apiClient *Api) staticContentHandle(w http.ResponseWriter, r *http.Request
     }
     if err != nil {
         if apiClient.debug {
-            apiClient.logger.Println("Not found path: " +  r.URL.Path)
+            apiClient.logger.Println("Not found path: " + r.URL.Path)
         }
-        w.WriteHeader(404)
-        _, _ = fmt.Fprintf(w, "404 Not Found")
+        http.NotFound(w, r)
     } else {
         if strings.HasSuffix(r.URL.Path, "css") {
             w.Header().Set("Content-Type", "text/css")
@@ -304,8 +328,8 @@ func main() {
     http.HandleFunc("/authenticate", client.authenticateHandle)
     http.HandleFunc("/login", client.authorizeHandle)
     http.HandleFunc("/createUser", client.createUserHandle)
-    http.HandleFunc("/submitRun", client.submitRunHandle)
     http.HandleFunc("/static/", client.staticContentHandle)
+    http.HandleFunc("/contest/", client.contestHandle)
     http.HandleFunc("/", client.mainHandle)
     address := ":80"
     if client.debug {
@@ -317,7 +341,5 @@ func main() {
     wg.Add(2)
     go client.ListenAndServeAndHandleError(false, address, "", "")
     go client.ListenAndServeAndHandleError(true, ":443", certFile, keyFile)
-    runs, _ := client.listRuns("")
-    fmt.Printf("%+v\n", runs)
     wg.Wait()
 }

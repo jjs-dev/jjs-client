@@ -37,3 +37,11 @@ type ProblemPage struct {
     Problem *Problem
     ToolChains []*ToolChain
 }
+
+type ContestMainPage struct {
+    Contest *Contest
+}
+
+type ContestSelectPage struct {
+    Contests []*Contest
+}

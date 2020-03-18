@@ -3,7 +3,6 @@ Submit run
 {{end}}
 {{define "nav"}}
 {{ $currentProblem := .Problem }}
-{{ $Contest := .Contest}}
 {{ range $index, $problem := .Contest.Problems }}
     {{ if eq $currentProblem.Id $problem.Id }}
         <li class="nav-item active">
@@ -13,7 +12,7 @@ Submit run
         </li>
     {{ else }}
         <li class="nav-item">
-            <a class="nav-link" href="/submitRun?contest_id={{ $Contest.Id }}&problem_id={{ $problem.Id }}">
+            <a class="nav-link" href="{{ $problem.Id }}">
                 {{ $problem.Id }}. {{ $problem.Title }}
             </a>
         </li>
@@ -25,7 +24,7 @@ Submit run
     <div class="text-center">
         <h3>Submit run to {{ .Contest.Title }} to problem {{ .Problem.Id }} ({{ .Problem.Title }})</h3>
     </div>
-    <form action="/submitRun" enctype="multipart/form-data" method="post">
+    <form action="" enctype="multipart/form-data" method="post">
         <input type="hidden" value="{{ .Contest.Id }}" name="contestID">
         <input type="hidden" value="{{ .Problem.Id }}" name="problemID">
         <div class="input-group mb-2">

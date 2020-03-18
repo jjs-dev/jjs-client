@@ -1,0 +1,15 @@
+{{define "title"}}
+{{ .Contest.Title }}
+{{end}}
+{{define "nav"}}
+    {{ range .Contest.Problems }}
+        <li class="nav-item">
+            <a class="nav-link" href="{{ .Id }}">
+                {{ .Id }}. {{ .Title }}
+            </a>
+        </li>
+    {{end}}
+{{end}}
+{{define "content"}}
+    Nothing here
+{{end}}
