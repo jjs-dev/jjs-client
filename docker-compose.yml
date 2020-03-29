@@ -1,7 +1,7 @@
 version: '3.7'
 services:
   client:
-     image: jjs-client # or docker.pkg.github.com/pavel-the-best/jjs-client/client
+     image: jjs-client # or docker.pkg.github.com/jjs-dev/jjs-client/client
      environment:
 #       DEBUG: yep
        JJS_API_URL: http://frontend

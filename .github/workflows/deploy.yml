@@ -14,8 +14,8 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build docker image
       run: |
-        docker build -t docker.pkg.github.com/pavel-the-best/jjs-client/client:latest .
+        docker build -t docker.pkg.github.com/jjs-dev/jjs-client/client:latest .
     - name: Upload docker image
       run: |
         docker login --username pavel-the-best --password ${{ secrets.GITHUB_TOKEN }} docker.pkg.github.com
-        docker push docker.pkg.github.com/pavel-the-best/jjs-client/client:latest
+        docker push docker.pkg.github.com/jjs-dev/jjs-client/client:latest
